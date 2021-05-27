@@ -1,0 +1,55 @@
+
+####################################### En tutorial usando dependencias antiguas, aún no sé qué uso tienen
+#https://www.adictosaltrabajo.com/2017/04/26/introduccion-a-la-gestion-de-servicios-web-con-spring-cloud-y-netflix-oss/
+
+# Component Info
+#info:
+#  component: Private-RestService (other with Public-RestService)
+
+# Port - If 0 get random port
+#server:
+#  port: 0
+
+# Eureka Instance ID
+#eureka:
+#  instance:
+#    instanceId: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:{random.value}}}
+
+# Service Registration Method 
+#cloud:
+#  services:
+#    registrationMethod: route
+
+# Disable HTTP Basic Authentication
+#security:
+#  basic:
+#    enabled: false
+
+####################################### BASIC MISC
+
+# This property is used a lot in Spring Cloud, often in the earliest phases of a service's configuration.
+spring:
+  application:
+    name: greeting-microservice
+
+
+# Tomcat Embedded Server Configuration
+server:
+  # We can let Spring Boot choose a random port for us because later we are accessing this service with its name.
+  #port: 0
+  # Our microservice instance attempts to register its presence with Eureka before this port assignment, resulting in a registration using the local IP address and a port number of zero (0), as does every subsequent instance of that microservice. This effectively restricts us to running a single instance of any local microservice we wish to register with a local Eureka instance. Fortunately, there is an easy fix: assign a unique instance-id, dynamically, to each of the instances used by Eureka.
+  # Assigns to server.port the value of variable PORT (if it exists); if not, 0. This prompts Spring Boot to assign a random, unused port.
+  port: ${PORT:0}
+
+####################################### Eureka Configuration Properties
+
+eureka:
+  client:
+    serviceUrl:
+      #will try to connect to localhost:8761/eureka if we do not specify the url
+      #defaultZone: http://localhost:8761/eureka
+      #defaultZone: http://eureka-server:8761/eureka
+      defaultZone: ${EUREKA_URI:http://eureka-server:8761/eureka}
+  instance:
+    #preferIpAddress: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}

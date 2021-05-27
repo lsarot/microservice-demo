@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: eureka-server
+
+
+# Tomcat Embedded Server Configuration
+server:
+  port: 8761
+
+#######################################
+
+# Eureka Configuration Properties
+eureka:
+  client:
+    # By default, the registry also tries to register itself, so you need to disable that behavior as well.
+    registerWithEureka: false
+    fetchRegistry: false
+    #instance-info-replication-interval-seconds: 10
+  server:
+    waitTimeInMsWhenSyncEmpty: 0
+    #eviction-interval-timer-in-ms: 50000
+
+#######################################
+
+# Disable logging for these packages
+# Eureka server will try to connect to other replica nodes, but in this case won't find any other, so it will be throwing an exception every 30s.. In a production environment, you will want more than one instance of the registry.
+logging:
+  level:
+    com.netflix.eureka: 'OFF'
+    com.netflix.discovery: 'OFF'

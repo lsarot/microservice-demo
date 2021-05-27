@@ -1,0 +1,15 @@
+
+server:
+  port: 8090
+
+
+# enables feign fallback feature using hystrix
+feign:
+  hystrix:
+    enabled: true
+
+
+#CONFIGURE HYSTRIX TIMEOUT - possible approach
+#hystrix with Feign still timesout in 1 sec
+#hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds=50000
+#hystrix.command.getFriends.execution.isolation.thread.timeoutInMilliseconds=50000

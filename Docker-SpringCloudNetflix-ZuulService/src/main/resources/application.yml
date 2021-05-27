@@ -1,0 +1,167 @@
+# From @EnableZuulProxy annotation doc
+# Sets up a Zuul server endpoint and installs some reverse proxy filters in it, so it can forward requests to backend servers.
+# The backends can be registered manually through configuration or via DiscoveryClient.
+# Los otros microservicios pueden registrarse aquí manualmente o usar un service discovery client (ig. Eureka client)
+
+
+####################################### SPRINGBOOT ACTUATOR
+# https://www.baeldung.com/spring-boot-actuators
+
+# http://localhost:{port}/actuator
+# All endpoints are enabled except /shutdown
+# Only /health and /info are exposed by default
+# we have to enable AND expose an endpoint to be accesible
+
+# enable all actuator endpoints except /shutdown
+management:
+  endpoints:
+    #enabled-by-default: false #disable even /health and /info
+    web:
+      #base-path: /actuador #to change base path
+      exposure:
+        include: "*" #By default, you can still access others over JMX if you do not set this flag.
+        #exclude: threaddump #exclude takes precedence over include. coma separated list in .properties
+  endpoint:
+    #enable specific endpoints
+    health:
+      enabled: true #then just enable one-by-one, and expose with endpoints:web:exposure:include: health
+      group: 
+        custom:
+          include: diskSpace,ping
+          show-components: always # when_authorized
+          show-details: always # when_authorized
+          status:
+            http-mapping:
+              up: 207 #tell springboot to return 207 instead of 200 when group status is UP
+    shutdown: #only accepts post (curl -X POST .../actuator/shutdown)
+      enabled: true
+
+# with spring-boot-starter-security all endpoints will be secured except /health and /info
+# we configure security to enable endpoints just to ADMIN role      
+
+################## ACTUATOR - INFO ENDPOINT
+
+info:
+  app:
+    name: Spring Sample Application
+    description: This is my first spring boot application
+    version: 1.0.0
+  custom:
+    whatever: WHATEVER!
+  java-vendor: ${java.specification.vendor} #embed an env var
+
+# see CustomInfoContributor.java to learn how to add more info dynamically
+
+####################################### BASIC MISC
+
+spring:
+  application:
+    name: zuul-service
+
+
+# Tomcat Embedded Server Configuration
+server:
+  port: 7000
+
+####################################### Eureka Configuration Properties
+
+# La ruta de registro en Eureka es un poco particular, ya que usualmente sería localhost:8761, pero en nuestro caso, vamos a usar el nombre del servicio de eureka (porque localhost en Docker no nos vale)
+eureka:
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      #si usamos docker: http://eureka-server:8761/eureka   (no por el app name, sino por el container-name)
+      #defaultZone: http://localhost:8761/eureka
+      defaultZone: http://eureka-server:8761/eureka
+  instance:
+    #by default eureka registers clients as {IP}:{spring.application.name}:{port}
+    #preferIpAddress: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    #instanceId: ${spring.application.name}:${server.port}
+    #secureHealthCheckUrl: someUrl-that-returns-200OK
+
+####################################### Zuul Configuration Properties
+# https://cloud.spring.io/spring-cloud-netflix/multi/multi__router_and_filter_zuul.html
+
+#We'll point our browser to http://localhost:7000/actuator/routes. This should show up all the routes available for Zuul that are discovered by Eureka:   ig.: {"/spring-cloud-eureka-client/**":"spring-cloud-eureka-client"}
+
+
+# To forward requests from the Gateway application, you need to tell Zuul the routes that it should watch and the services to which to forward requests that are made to those routes.
+# We specify routes by setting properties under zuul.routes. Each of our microservices can have an entry under zuul.routes.NAME, where NAME is the service identifier in case not specified with url or serviceId
+zuul:
+  #prefix: /gw   We would have to do requests like zuulhost:port/gw/greeting-service/some-service-url   for them be redirected to {greeting-microservice-ip}:port/some-service-url
+  #stripPrefix: false #remove the prefix when forwarding, true by default. Could be also placed in a particular route!  
+  host:
+    #these seems to be limiting features, but not as configurable as we want, so we configure more rate limiting on zuul.ratelimit node
+    socket-timeout-millis: 5000
+    max-per-route-connections: 5
+    max-total-connections: 20          
+  ribbon-isolation-strategy: semaphore
+  semaphore:
+    max-semaphores: 15
+  routes:
+    serv-greet:
+      #todo lo que vaya al apy gateway con /greeting-microservice/ irá a algún nodo con nombre greeting-microservice en la misma ruta, pero sin el prefix /greeting-microservice/
+      path: /greeting-service/**
+      serviceId: greeting-microservice
+      #url: http://localhost:1234   si no usáramos Eureka para service discovery!
+    #estas a continuación son para probar rate limiting
+    serviceSimple:
+      path: /gw/limiting/simple
+      url: forward:/
+    serviceAdvanced:
+      path: /gw/limiting/advanced
+      url: forward:/
+    #así haríamos si no usáramos Eureka, definimos un service y podemos configurar otras cosas, pero hay que desactivar la búsqueda en eureka con ribbon.eureka.enabled=false
+    #echo:
+      #path: /echo/**
+      #serviceId: echo-service   notar que luego definimos abajo un echo-service
+  ratelimit:
+    enabled: true
+    # CONSUL, REDIS, JPA, BUCKET4J_JCACHE _HAZELCAST _INFINISPAN _IGNITE
+    repository: JPA
+    policy-list:
+      serviceSimple:
+      - limit: 5
+        refresh-interval: 60
+        type:
+        - origin
+      serviceAdvanced:
+      - limit: 1
+        refresh-interval: 2
+        type:
+        - origin
+
+
+# ADDED RATE LIMITING SUPPORT
+
+# https://github.com/marcosbarbero/spring-cloud-zuul-ratelimit
+# The limit property specifies the number of times the endpoint can be called within the refresh-interval.
+# As we can see, we added a rate limit of 5 requests per 60 seconds for the serviceSimple endpoint. In contrast, serviceAdvanced has a rate limit of 1 request per 2 seconds.
+# The type configuration specifies which rate limit approach we want to follow. Here are the possible values:
+#    origin – rate limit based on the user origin request
+#    url – rate limit based on the request path of the downstream service
+#    user – rate limit based on the authenticated username or ‘anonymous'
+#    No value – acts as a global configuration per service. To use this approach just don’t set param ‘type'
+
+
+# SI QUEREMOS DESACTIVAR EUREKA PARA EL DISCOVERY DE CLIENTES
+
+# Zuul uses Netflix's Ribbon to perform client-side load balancing.
+# By default, Ribbon would use Netflix Eureka for service discovery.
+# Since Ribbon now cannot use Eureka to look up services, we must specify a url for the book service. (zuul.routes.SERVICE-NAME.url)
+#ribbon.eureka.enabled=false
+
+
+#NOT USED, JUST TO SHOW HOW TO DEFINE A SERVICE FOR ZUUL ROUTING
+echo-service:
+  ribbon:
+    NIWSServerListClassName: com.netflix.loadbalancer.ConfigurationBasedServerList
+    listOfServers: https://example1.com,http://example2.com
+    ConnectTimeout: 1000
+    ReadTimeout: 3000
+    MaxTotalHttpConnections: 500
+    MaxConnectionsPerHost: 100
+    #eureka:
+      #enabled: false   note we can disable eureka retrieval for this servers

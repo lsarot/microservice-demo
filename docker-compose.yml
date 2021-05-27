@@ -1,0 +1,69 @@
+version: '3.8'
+
+# docker compose up --build --force-recreate
+
+services:
+  eureka-server:
+    container_name: eureka-server
+    image: eureka-server-leo #nombre de la imagen que hemos creado
+    build:
+      context: Docker-SpringCloudNetflix-Eureka-Server
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - '8761:8761'
+    networks:
+      - 'dockernetflix-network'
+  zuul-service:
+    container_name: zuul
+    image: zuul-leo
+    build:
+      context: Docker-SpringCloudNetflix-ZuulService
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - '7000:7000'
+    networks:
+      - 'dockernetflix-network'
+    depends_on:
+      - eureka-server
+  greeting-microservice:
+    container_name: greetmicroservice
+    image: greetmicroservice-leo
+    build:
+      context: Docker-SpringCloudNetflix-GreetingMicroservice
+      dockerfile: Dockerfile
+    restart: always
+    networks:
+      - 'dockernetflix-network'
+    depends_on:
+      - eureka-server
+  feignclient-microservice:
+    container_name: feignclient-microservice
+    image: feignclient-microservice-leo
+    build:
+      context: Docker-SpringCloudNetflix-FeignClientMicroservice
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - '8080:8080'
+    networks:
+      - 'dockernetflix-network'
+    depends_on:
+      - eureka-server
+  hystrixdemo-microservice:
+    container_name: hystrixdemo-microservice
+    image: hystrixdemo-microservice-leo
+    build:
+      context: Docker-SpringCloud-Hystrix
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - '8090:8090'
+    networks:
+      - 'dockernetflix-network'
+    depends_on:
+      - eureka-server
+networks:
+  dockernetflix-network:
+    driver: bridge
