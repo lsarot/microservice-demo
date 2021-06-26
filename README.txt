@@ -14,7 +14,7 @@ Bootstraps:
 
 * we could have used feign-client-service (#4) to show hystrix usage, but note this app does not use same spring-boot version nor spring-cloud version.
 
-* we show Actuator usage in Zuul server app (Docker-SpringCloudNetflix-ZuulService), algo adding git info to the /info path
+* we show Actuator usage in Zuul server app (Docker-SpringCloudNetflix-ZuulService), adding git info to the /info path
 
 Also uses Docker if we want to!
 

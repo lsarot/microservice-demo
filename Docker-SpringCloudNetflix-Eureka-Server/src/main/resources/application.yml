@@ -13,6 +13,8 @@ server:
 eureka:
   client:
     # By default, the registry also tries to register itself, so you need to disable that behavior as well.
+    # unless we configure a replica server (just another instance) and we want them to retrieve registry from and register on each other.
+    #serviceUrl: defaultZone: other-replica-url
     registerWithEureka: false
     fetchRegistry: false
     #instance-info-replication-interval-seconds: 10

@@ -132,8 +132,18 @@
 					</execution>
 				</executions>
 				<configuration>
+					<!--
+						- bastará esta configuración para que cree el git.properties
+						- por defecto irá a buscar .git de este proyecto o en el padre
+						- ya con esto funciona en el endpoint /actuator/info
+
+						- otra opción es: include a git.properties file in the resources folder ourselves. We can include only the entries that we'll use in our project using placeholders like: git.branch=${git.branch} and the plugin will replace them for us. Note: Some IDEs don't work well with this plugin, and might throw a ‘circular placeholder reference' error on bootstrap!
+
+						- Actuator integration: an included actuator endpoint extension, org.springframework.boot.actuate.info.GitInfoContributor, will pick git.properties file up if available. Then we can go to /actuator/info and it will show some of the properties.
+						Si queremos extender y que muestre más, extendemos la ruta /info .. o creamos nuestro propio endpoint!
+					-->
 					<failOnNoGitDirectory>true</failOnNoGitDirectory>
-					<dotGitDirectory>${project.basedir}/submodule_directory/.git</dotGitDirectory><!--custom .git location-->
+					<!--<dotGitDirectory>${project.basedir}/submodule_directory/.git</dotGitDirectory>--><!--custom .git location-->
 					<!--<generateGitPropertiesFile>false</generateGitPropertiesFile>-->
 					<!--<generateGitPropertiesFilename>${project.build.outputDirectory}/filename.properties</generateGitPropertiesFilename>--><!--custom .properties file-->
 					<prefix>git</prefix><!--custom properties prefix-->

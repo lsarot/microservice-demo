@@ -59,6 +59,16 @@ spring:
     name: zuul-service
 
 
+# IF WE USE A CONFIG SERVER
+#spring:
+  #cloud:
+    #config:
+      #name: zuul-service # To lookup for zuul-service.properties in config server
+    #discovery:
+      #enabled: true # Flag to indicate that config server discovery is enabled (config server URL  will be looked up via discovery).
+      #service-id: config-server # Service id to locate config server.
+
+
 # Tomcat Embedded Server Configuration
 server:
   port: 7000
@@ -68,6 +78,8 @@ server:
 # La ruta de registro en Eureka es un poco particular, ya que usualmente sería localhost:8761, pero en nuestro caso, vamos a usar el nombre del servicio de eureka (porque localhost en Docker no nos vale)
 eureka:
   client:
+    #region: default ??
+    registryFetchIntervalSeconds: 5
     registerWithEureka: true
     fetchRegistry: true
     serviceUrl:
@@ -106,6 +118,7 @@ zuul:
       path: /greeting-service/**
       serviceId: greeting-microservice
       #url: http://localhost:1234   si no usáramos Eureka para service discovery!
+      #sensitive-headers: Set-Cookie,Authorization
     #estas a continuación son para probar rate limiting
     serviceSimple:
       path: /gw/limiting/simple
@@ -165,3 +178,16 @@ echo-service:
     MaxConnectionsPerHost: 100
     #eureka:
       #enabled: false   note we can disable eureka retrieval for this servers
+
+
+####################################### Hystrix Configuration Properties for Zuul
+
+# NOT TESTED YET!
+#hystrix:
+  #command:
+    #serv-greet:
+      #execution:
+        #isolation:
+          #thread:
+            #timeoutInMilliseconds: 60000
+
